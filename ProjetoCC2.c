@@ -5,15 +5,15 @@
 #define PIN_READWRITE 10 //LCD R/W
 #define PIN_CONTRAST 12 //LCD V0
 
-#define SPRITE_RUN1 1
-#define SPRITE_RUN2 2
-#define SPRITE_JUMP 3
+#define AVIAO_BAIXO 1
+#define AVIAO_ALTO 2
+#define INSETO_BAIXO 3
 #define SPRITE_JUMP_UPPER '.'         // Use the '.' character for the head
-#define SPRITE_JUMP_LOWER 4
+#define INSETO_ALTO 4
 #define SPRITE_TERRAIN_EMPTY ' '      // User the ' ' character
-#define SPRITE_TERRAIN_SOLID 5
-#define SPRITE_TERRAIN_SOLID_RIGHT 6
-#define SPRITE_TERRAIN_SOLID_LEFT 7
+#define DOIS_INSETOS 5
+#define TIRO_BAIXO 6
+#define TIRO_ALTO 7
 
 #define HERO_HORIZONTAL_POSITION 1    // Horizontal position of hero on screen
 
@@ -129,15 +129,15 @@ void advanceTerrain(char* terrain, byte newTerrain){
     char next = (i == TERRAIN_WIDTH-1) ? newTerrain : terrain[i+1];
     switch (current){
       case SPRITE_TERRAIN_EMPTY:
-        terrain[i] = (next == SPRITE_TERRAIN_SOLID) ? SPRITE_TERRAIN_SOLID_RIGHT : SPRITE_TERRAIN_EMPTY;
+        terrain[i] = (next == DOIS_INSETOS) ? TIRO_BAIXO : SPRITE_TERRAIN_EMPTY;
         break;
-      case SPRITE_TERRAIN_SOLID:
-        terrain[i] = (next == SPRITE_TERRAIN_EMPTY) ? SPRITE_TERRAIN_SOLID_LEFT : SPRITE_TERRAIN_SOLID;
+      case DOIS_INSETOS:
+        terrain[i] = (next == SPRITE_TERRAIN_EMPTY) ? TIRO_ALTO : DOIS_INSETOS;
         break;
-      case SPRITE_TERRAIN_SOLID_RIGHT:
-        terrain[i] = SPRITE_TERRAIN_SOLID;
+      case TIRO_BAIXO:
+        terrain[i] = DOIS_INSETOS;
         break;
-      case SPRITE_TERRAIN_SOLID_LEFT:
+      case TIRO_ALTO:
         terrain[i] = SPRITE_TERRAIN_EMPTY;
         break;
     }
@@ -155,35 +155,35 @@ bool drawHero(byte position, char* terrainUpper, char* terrainLower, unsigned in
       break;
     case HERO_POSITION_RUN_LOWER_1:
       upper = SPRITE_TERRAIN_EMPTY;
-      lower = SPRITE_RUN1;
+      lower = AVIAO_BAIXO;
       break;
     case HERO_POSITION_RUN_LOWER_2:
       upper = SPRITE_TERRAIN_EMPTY;
-      lower = SPRITE_RUN2;
+      lower = AVIAO_ALTO;
       break;
     case HERO_POSITION_JUMP_1:
     case HERO_POSITION_JUMP_8:
       upper = SPRITE_TERRAIN_EMPTY;
-      lower = SPRITE_JUMP;
+      lower = INSETO_BAIXO;
       break;
     case HERO_POSITION_JUMP_2:
     case HERO_POSITION_JUMP_7:
       upper = SPRITE_JUMP_UPPER;
-      lower = SPRITE_JUMP_LOWER;
+      lower = INSETO_ALTO;
       break;
     case HERO_POSITION_JUMP_3:
     case HERO_POSITION_JUMP_4:
     case HERO_POSITION_JUMP_5:
     case HERO_POSITION_JUMP_6:
-      upper = SPRITE_JUMP;
+      upper = INSETO_BAIXO;
       lower = SPRITE_TERRAIN_EMPTY;
       break;
     case HERO_POSITION_RUN_UPPER_1:
-      upper = SPRITE_RUN1;
+      upper = AVIAO_BAIXO;
       lower = SPRITE_TERRAIN_EMPTY;
       break;
     case HERO_POSITION_RUN_UPPER_2:
-      upper = SPRITE_RUN2;
+      upper = AVIAO_ALTO;
       lower = SPRITE_TERRAIN_EMPTY;
       break;
   }
@@ -267,8 +267,8 @@ void loop(){
   }
 
   // Shift the terrain to the left
-  advanceTerrain(terrainLower, newTerrainType == TERRAIN_LOWER_BLOCK ? SPRITE_TERRAIN_SOLID : SPRITE_TERRAIN_EMPTY);
-  advanceTerrain(terrainUpper, newTerrainType == TERRAIN_UPPER_BLOCK ? SPRITE_TERRAIN_SOLID : SPRITE_TERRAIN_EMPTY);
+  advanceTerrain(terrainLower, newTerrainType == TERRAIN_LOWER_BLOCK ? DOIS_INSETOS : SPRITE_TERRAIN_EMPTY);
+  advanceTerrain(terrainUpper, newTerrainType == TERRAIN_UPPER_BLOCK ? DOIS_INSETOS : SPRITE_TERRAIN_EMPTY);
   
   // Make new terrain to enter on the right
   if (--newTerrainDuration == 0) {
