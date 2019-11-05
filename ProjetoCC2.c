@@ -5,20 +5,20 @@
 #define PIN_READWRITE 10 //LCD R/W
 #define PIN_CONTRAST 12 //LCD V0
 
-#define AVIAO_BAIXO 1
-#define AVIAO_ALTO 2
-#define INSETO_BAIXO 3
+#define SPRITE_AVIAO_BAIXO 1
+#define SPRITE_AVIAO_ALTO 2
+#define SPRITE_INSETO_BAIXO 3
 #define SPRITE_JUMP_UPPER '.'         // Use the '.' character for the head
-#define INSETO_ALTO 4
-#define SPRITE_TERRAIN_EMPTY ' '      // User the ' ' character
-#define DOIS_INSETOS 5
-#define TIRO_BAIXO 6
-#define TIRO_ALTO 7
+#define SPRITE_INSETO_ALTO 4
+#define SPRITE_VAZIO ' '      // User the ' ' character
+#define SPRITE_DOIS_INSETOS 5
+#define SPRITE_TIRO_BAIXO 6
+#define SPRITE_SPRITE_TIRO_ALTO 7
 
-#define HERO_HORIZONTAL_POSITION 1    // Horizontal position of hero on screen
+#define POS_AVIAO 0    // Horizontal position of hero on screen
 
 #define TERRAIN_WIDTH 16
-#define TERRAIN_EMPTY 0
+#define VAZIO 0
 #define TERRAIN_LOWER_BLOCK 1
 #define TERRAIN_UPPER_BLOCK 2
 
@@ -116,29 +116,29 @@ void initializeGraphics(){
 	  lcd.createChar(i + 1, &graphics[i * 8]); // Create 7 new caracters(defined in the binary graphics array)
   }
   for (i = 0; i < TERRAIN_WIDTH; ++i) {
-    terrainUpper[i] = SPRITE_TERRAIN_EMPTY;
-    terrainLower[i] = SPRITE_TERRAIN_EMPTY;
+    terrainUpper[i] = SPRITE_VAZIO;
+    terrainLower[i] = SPRITE_VAZIO;
   }
 }
 
 // Slide the terrain to the left in half-character increments
 //
-void advanceTerrain(char* terrain, byte newTerrain){
+void ProxFrame(char* terrain, byte newTerrain){
   for (int i = 0; i < TERRAIN_WIDTH; ++i) {
     char current = terrain[i];
     char next = (i == TERRAIN_WIDTH-1) ? newTerrain : terrain[i+1];
     switch (current){
-      case SPRITE_TERRAIN_EMPTY:
-        terrain[i] = (next == DOIS_INSETOS) ? TIRO_BAIXO : SPRITE_TERRAIN_EMPTY;
+      case SPRITE_VAZIO:
+        terrain[i] = (next == SPRITE_DOIS_INSETOS) ? SPRITE_TIRO_BAIXO : SPRITE_VAZIO;
         break;
-      case DOIS_INSETOS:
-        terrain[i] = (next == SPRITE_TERRAIN_EMPTY) ? TIRO_ALTO : DOIS_INSETOS;
+      case SPRITE_DOIS_INSETOS:
+        terrain[i] = (next == SPRITE_VAZIO) ? SPRITE_SPRITE_TIRO_ALTO : SPRITE_DOIS_INSETOS;
         break;
-      case TIRO_BAIXO:
-        terrain[i] = DOIS_INSETOS;
+      case SPRITE_TIRO_BAIXO:
+        terrain[i] = SPRITE_DOIS_INSETOS;
         break;
-      case TIRO_ALTO:
-        terrain[i] = SPRITE_TERRAIN_EMPTY;
+      case SPRITE_SPRITE_TIRO_ALTO:
+        terrain[i] = SPRITE_VAZIO;
         break;
     }
   }
@@ -146,54 +146,54 @@ void advanceTerrain(char* terrain, byte newTerrain){
 
 bool drawHero(byte position, char* terrainUpper, char* terrainLower, unsigned int score) {
   bool collide = false;
-  char upperSave = terrainUpper[HERO_HORIZONTAL_POSITION];
-  char lowerSave = terrainLower[HERO_HORIZONTAL_POSITION];
+  char upperSave = terrainUpper[POS_AVIAO];
+  char lowerSave = terrainLower[POS_AVIAO];
   byte upper, lower;
   switch (position) {
     case HERO_POSITION_OFF:
-      upper = lower = SPRITE_TERRAIN_EMPTY;
+      upper = lower = SPRITE_VAZIO;
       break;
     case HERO_POSITION_RUN_LOWER_1:
-      upper = SPRITE_TERRAIN_EMPTY;
-      lower = AVIAO_BAIXO;
+      upper = SPRITE_VAZIO;
+      lower = SPRITE_AVIAO_BAIXO;
       break;
     case HERO_POSITION_RUN_LOWER_2:
-      upper = SPRITE_TERRAIN_EMPTY;
-      lower = AVIAO_ALTO;
+      upper = SPRITE_VAZIO;
+      lower = SPRITE_AVIAO_ALTO;
       break;
     case HERO_POSITION_JUMP_1:
     case HERO_POSITION_JUMP_8:
-      upper = SPRITE_TERRAIN_EMPTY;
-      lower = INSETO_BAIXO;
+      upper = SPRITE_VAZIO;
+      lower = SPRITE_INSETO_BAIXO;
       break;
     case HERO_POSITION_JUMP_2:
     case HERO_POSITION_JUMP_7:
       upper = SPRITE_JUMP_UPPER;
-      lower = INSETO_ALTO;
+      lower = SPRITE_INSETO_ALTO;
       break;
     case HERO_POSITION_JUMP_3:
     case HERO_POSITION_JUMP_4:
     case HERO_POSITION_JUMP_5:
     case HERO_POSITION_JUMP_6:
-      upper = INSETO_BAIXO;
-      lower = SPRITE_TERRAIN_EMPTY;
+      upper = SPRITE_INSETO_BAIXO;
+      lower = SPRITE_VAZIO;
       break;
     case HERO_POSITION_RUN_UPPER_1:
-      upper = AVIAO_BAIXO;
-      lower = SPRITE_TERRAIN_EMPTY;
+      upper = SPRITE_AVIAO_BAIXO;
+      lower = SPRITE_VAZIO;
       break;
     case HERO_POSITION_RUN_UPPER_2:
-      upper = AVIAO_ALTO;
-      lower = SPRITE_TERRAIN_EMPTY;
+      upper = SPRITE_AVIAO_ALTO;
+      lower = SPRITE_VAZIO;
       break;
   }
   if (upper != ' ') {
-    terrainUpper[HERO_HORIZONTAL_POSITION] = upper;
-    collide = (upperSave == SPRITE_TERRAIN_EMPTY) ? false : true;
+    terrainUpper[POS_AVIAO] = upper;
+    collide = (upperSave == SPRITE_VAZIO) ? false : true;
   }
   if (lower != ' ') {
-    terrainLower[HERO_HORIZONTAL_POSITION] = lower;
-    collide |= (lowerSave == SPRITE_TERRAIN_EMPTY) ? false : true;
+    terrainLower[POS_AVIAO] = lower;
+    collide |= (lowerSave == SPRITE_VAZIO) ? false : true;
   }
   
   byte digits = (score > 9999) ? 5 : (score > 999) ? 4 : (score > 99) ? 3 : (score > 9) ? 2 : 1;
@@ -212,8 +212,8 @@ bool drawHero(byte position, char* terrainUpper, char* terrainLower, unsigned in
   lcd.setCursor(16 - digits,0);
   lcd.print(score);
 
-  terrainUpper[HERO_HORIZONTAL_POSITION] = upperSave;
-  terrainLower[HERO_HORIZONTAL_POSITION] = lowerSave;
+  terrainUpper[POS_AVIAO] = upperSave;
+  terrainLower[POS_AVIAO] = lowerSave;
   return collide;
 }
 
@@ -242,7 +242,7 @@ void setup(){
 
 void loop(){
   static byte heroPos = HERO_POSITION_RUN_LOWER_1;
-  static byte newTerrainType = TERRAIN_EMPTY;
+  static byte newTerrainType = VAZIO;
   static byte newTerrainDuration = 1;
   static bool playing = false;
   static bool blink = false;
@@ -267,16 +267,16 @@ void loop(){
   }
 
   // Shift the terrain to the left
-  advanceTerrain(terrainLower, newTerrainType == TERRAIN_LOWER_BLOCK ? DOIS_INSETOS : SPRITE_TERRAIN_EMPTY);
-  advanceTerrain(terrainUpper, newTerrainType == TERRAIN_UPPER_BLOCK ? DOIS_INSETOS : SPRITE_TERRAIN_EMPTY);
+  ProxFrame(terrainLower, newTerrainType == TERRAIN_LOWER_BLOCK ? SPRITE_DOIS_INSETOS : SPRITE_VAZIO);
+  ProxFrame(terrainUpper, newTerrainType == TERRAIN_UPPER_BLOCK ? SPRITE_DOIS_INSETOS : SPRITE_VAZIO);
   
   // Make new terrain to enter on the right
   if (--newTerrainDuration == 0) {
-    if (newTerrainType == TERRAIN_EMPTY) {
+    if (newTerrainType == VAZIO) {
       newTerrainType = (random(3) == 0) ? TERRAIN_UPPER_BLOCK : TERRAIN_LOWER_BLOCK;
       newTerrainDuration = 2 + random(10);
     } else {
-      newTerrainType = TERRAIN_EMPTY;
+      newTerrainType = VAZIO;
       newTerrainDuration = 10 + random(10);
     }
   }
@@ -291,9 +291,9 @@ void loop(){
   } else {
     if (heroPos == HERO_POSITION_RUN_LOWER_2 || heroPos == HERO_POSITION_JUMP_8) {
       heroPos = HERO_POSITION_RUN_LOWER_1;
-    } else if ((heroPos >= HERO_POSITION_JUMP_3 && heroPos <= HERO_POSITION_JUMP_5) && terrainLower[HERO_HORIZONTAL_POSITION] != SPRITE_TERRAIN_EMPTY) {
+    } else if ((heroPos >= HERO_POSITION_JUMP_3 && heroPos <= HERO_POSITION_JUMP_5) && terrainLower[POS_AVIAO] != SPRITE_VAZIO) {
       heroPos = HERO_POSITION_RUN_UPPER_1;
-    } else if (heroPos >= HERO_POSITION_RUN_UPPER_1 && terrainLower[HERO_HORIZONTAL_POSITION] == SPRITE_TERRAIN_EMPTY) {
+    } else if (heroPos >= HERO_POSITION_RUN_UPPER_1 && terrainLower[POS_AVIAO] == SPRITE_VAZIO) {
       heroPos = HERO_POSITION_JUMP_5;
     } else if (heroPos == HERO_POSITION_RUN_UPPER_2) {
       heroPos = HERO_POSITION_RUN_UPPER_1;
@@ -302,7 +302,7 @@ void loop(){
     }
     ++distance;
     
-    digitalWrite(PIN_AUTOPLAY, terrainLower[HERO_HORIZONTAL_POSITION + 2] == SPRITE_TERRAIN_EMPTY ? HIGH : LOW);
+    digitalWrite(PIN_AUTOPLAY, terrainLower[POS_AVIAO + 2] == SPRITE_VAZIO ? HIGH : LOW);
   }
   delay(50);
 }
