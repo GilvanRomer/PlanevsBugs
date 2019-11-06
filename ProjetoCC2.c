@@ -186,23 +186,23 @@ bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int s
   return false;//collide;
 }
 
-static byte novoTipoCelula = VAZIO;
-static byte Temporizador_novaCelula = 1;
+static byte novoTipoCelula = SPRITE_VAZIO;
+static byte distNovaCelula = 1;
 
-byte CriarInseto(){ //Falta Completar
-	if (--Temporizador_novaCelula == 0) {
+byte CriarInseto(byte dist){ //Falta Completar
+	if (--distNovaCelula == 0) {
 	  int r = random(100);
-	  if (r < 4){
+	  if (r < 10){
 	    novoTipoCelula = (random(2)==0) ? SPRITE_DOIS_INSETOS: SPRITE_DOIS_INSETOS;
-	  }else if (r < 17){
+	  }else if (r < 55){
 	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_ALTO: SPRITE_INSETO_ALTO;
-	  }else if (r < 30){
-	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_BAIXO: SPRITE_INSETO_BAIXO;
 	  }else{
-	    novoTipoCelula = SPRITE_VAZIO;
+	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_BAIXO: SPRITE_INSETO_BAIXO;
 	  }
-	  Temporizador_novaCelula = 1;
-     }
+	  distNovaCelula = dist; //Dist controla a distancia entre os insetos
+    }else{
+	  novoTipoCelula = SPRITE_VAZIO;
+	 }
   return novoTipoCelula;
 }
 
@@ -256,8 +256,8 @@ void loop(){
   }
 
   // Shift the Celula to the left
-  ProxFrame(CelulaBaixo, CriarInseto());//Falta Completar
-  ProxFrame(CelulaAlto, CriarInseto());//Falta Completar
+  ProxFrame(CelulaBaixo, CriarInseto(5));//Falta Completar
+  ProxFrame(CelulaAlto, CriarInseto(5));//Falta Completar
     
   if (buttonPushed) {
     if (aviaoPos < AVIAO_POSICAO_4){
