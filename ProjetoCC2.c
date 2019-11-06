@@ -122,12 +122,17 @@ void initializeGraphics(){
 
 // Slide the Celula to the left in half-character increments
 //
-void ProxFrame(char* Celula, byte novaCelula){
+static int frames = 0;
+void ProxFrame(char* Celula, byte novaCelula, byte vel, byte pos){ //vel controla velocidade dos insetos
   for (int i = 0; i < NUM_CELULAS; ++i) {
     char atual = Celula[i];
     char prox = (i == NUM_CELULAS-1) ? novaCelula : Celula[i+1];
-    Celula[i] = prox;
+    if (frames > vel*2){
+	  Celula[i] = prox;
+	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;
+    }
   }
+  ++frames;
 }
 
 bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int score) {
@@ -222,9 +227,6 @@ void setup(){
   pinMode(PIN_AUTOPLAY, OUTPUT);
   digitalWrite(PIN_AUTOPLAY, HIGH);
   
-  // Digital pin 2 maps to interrupt 0
-  attachInterrupt(digitalPinToInterrupt(2), buttonPush, FALLING);
-  
   initializeGraphics();
   
   lcd.begin(16, 2);
@@ -256,12 +258,13 @@ void loop(){
   }
 
   // Shift the Celula to the left
-  ProxFrame(CelulaBaixo, CriarInseto(5));//Falta Completar
-  ProxFrame(CelulaAlto, CriarInseto(5));//Falta Completar
+  ProxFrame(CelulaBaixo, CriarInseto(5), 5, 0);//Falta Completar
+  ProxFrame(CelulaAlto, CriarInseto(5), 5, 1);//Falta Completar
     
   if (buttonPushed) {
     if (aviaoPos < AVIAO_POSICAO_4){
 	  ++aviaoPos;
+      f = 0;
     }
 	buttonPushed = false;
   }  
