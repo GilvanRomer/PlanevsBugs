@@ -227,6 +227,9 @@ void setup(){
   pinMode(PIN_AUTOPLAY, OUTPUT);
   digitalWrite(PIN_AUTOPLAY, HIGH);
   
+  // Digital pin 2 maps to interrupt 0
+  attachInterrupt(digitalPinToInterrupt(2), buttonPush, FALLING);
+  
   initializeGraphics();
   
   lcd.begin(16, 2);
