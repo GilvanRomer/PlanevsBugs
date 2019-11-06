@@ -8,44 +8,43 @@
 #define SPRITE_AVIAO_BAIXO 1
 #define SPRITE_AVIAO_ALTO 2
 #define SPRITE_INSETO_BAIXO 3
-#define SPRITE_JUMP_UPPER '.'         // Use the '.' character for the head
+#define SPRITE_JUMP_alto '.'         // Use the '.' character for the head
 #define SPRITE_INSETO_ALTO 4
 #define SPRITE_VAZIO ' '      // User the ' ' character
 #define SPRITE_DOIS_INSETOS 5
 #define SPRITE_TIRO_BAIXO 6
-#define SPRITE_SPRITE_TIRO_ALTO 7
+#define SPRITE_TIRO_ALTO 7
 
 #define POS_AVIAO 0    // Horizontal position of hero on screen
 
-#define TERRAIN_WIDTH 16
+#define NUM_CELULAS 16
 #define VAZIO 0
-#define TERRAIN_LOWER_BLOCK 1
-#define TERRAIN_UPPER_BLOCK 2
+#define INSETO_BAIXO_1 1
+#define INSETO_BAIXO_2 1
+#define INSETO_ALTO_1 2
+#define INSETO_ALTO_2 2
+#define DOIS_INSETOS_1 3
+#define DOIS_INSETOS_2 3
 
-#define HERO_POSITION_OFF 0          // Hero is invisible
-#define HERO_POSITION_RUN_LOWER_1 1  // Hero is running on lower row (pose 1)
-#define HERO_POSITION_RUN_LOWER_2 2  //                              (pose 2)
+#define POS_AVIAO_NULO 0          // Hero is invisible
+#define HERO_POSITION_RUN_baixo_1 1  // Hero is running on baixo row (pose 1)
 
-#define HERO_POSITION_JUMP_1 3       // Starting a jump
-#define HERO_POSITION_JUMP_2 4       // Half-way up
-#define HERO_POSITION_JUMP_3 5       // Jump is on upper row
-#define HERO_POSITION_JUMP_4 6       // Jump is on upper row
-#define HERO_POSITION_JUMP_5 7       // Jump is on upper row
-#define HERO_POSITION_JUMP_6 8       // Jump is on upper row
-#define HERO_POSITION_JUMP_7 9       // Half-way down
-#define HERO_POSITION_JUMP_8 10      // About to land
+#define AVIAO_POSICAO_1 1       // Starting a jump
+#define AVIAO_POSICAO_2 2       // Half-way up
+#define AVIAO_POSICAO_3 3       // Jump is on alto row
+#define AVIAO_POSICAO_4 4       // Jump is on alto row
 
-#define HERO_POSITION_RUN_UPPER_1 11 // Hero is running on upper row (pose 1)
-#define HERO_POSITION_RUN_UPPER_2 12 //                              (pose 2)
+#define HERO_POSITION_RUN_alto_1 11 // Hero is running on alto row (pose 1)
+#define HERO_POSITION_RUN_alto_2 12 //                              (pose 2)
 
 LiquidCrystal lcd(11, 9, 6, 5, 4, 3); //Initialize lcd
-static char terrainUpper[TERRAIN_WIDTH + 1];
-static char terrainLower[TERRAIN_WIDTH + 1];
+static char CelulaAlto[NUM_CELULAS + 1];
+static char CelulaBaixo[NUM_CELULAS + 1];
 static bool buttonPushed = false;
 
 void initializeGraphics(){
   static byte graphics[] = { //Store new lcd characters
-    // Plane down
+    // Avião baixo
     B00000,
     B00000,
     B00000,
@@ -54,7 +53,7 @@ void initializeGraphics(){
     B11111,
     B00100,
     B00000,
-    // Plane up
+    // Avião alto
     B00000,
     B10100,
     B11111,
@@ -63,7 +62,7 @@ void initializeGraphics(){
     B00000,
     B00000,
     B00000,
-    // Bug down
+    // Inseto baixo
     B00000,
     B00000,
     B00000,
@@ -72,7 +71,7 @@ void initializeGraphics(){
     B01111,
     B10101,
     B00000,
-    // Bug up
+    // Inseto alto
     B00000,
     B10101,
     B01111,
@@ -81,7 +80,7 @@ void initializeGraphics(){
     B00000,
     B00000,
     B00000,
-    // Bug duo
+    // Dois insetos
     B00000,
     B10101,
     B01111,
@@ -90,7 +89,7 @@ void initializeGraphics(){
     B10101,
     B01111,
     B10101,
-    // Shot down
+    // Tiro baixo
     B00000,
     B00000,
     B00000,
@@ -99,7 +98,7 @@ void initializeGraphics(){
     B00100,
     B00000,
     B00000,
-    // Shot up
+    // Tiro alto
     B00000,
     B00000,
     B00100,
@@ -115,107 +114,98 @@ void initializeGraphics(){
   for (i = 0; i < 7; ++i) {
 	  lcd.createChar(i + 1, &graphics[i * 8]); // Create 7 new caracters(defined in the binary graphics array)
   }
-  for (i = 0; i < TERRAIN_WIDTH; ++i) {
-    terrainUpper[i] = SPRITE_VAZIO;
-    terrainLower[i] = SPRITE_VAZIO;
+  for (i = 0; i < NUM_CELULAS; ++i) {
+    CelulaAlto[i] = SPRITE_VAZIO;
+    CelulaBaixo[i] = SPRITE_VAZIO;
   }
 }
 
-// Slide the terrain to the left in half-character increments
+// Slide the Celula to the left in half-character increments
 //
-void ProxFrame(char* terrain, byte newTerrain){
-  for (int i = 0; i < TERRAIN_WIDTH; ++i) {
-    char current = terrain[i];
-    char next = (i == TERRAIN_WIDTH-1) ? newTerrain : terrain[i+1];
-    switch (current){
-      case SPRITE_VAZIO:
-        terrain[i] = (next == SPRITE_DOIS_INSETOS) ? SPRITE_TIRO_BAIXO : SPRITE_VAZIO;
-        break;
-      case SPRITE_DOIS_INSETOS:
-        terrain[i] = (next == SPRITE_VAZIO) ? SPRITE_SPRITE_TIRO_ALTO : SPRITE_DOIS_INSETOS;
-        break;
-      case SPRITE_TIRO_BAIXO:
-        terrain[i] = SPRITE_DOIS_INSETOS;
-        break;
-      case SPRITE_SPRITE_TIRO_ALTO:
-        terrain[i] = SPRITE_VAZIO;
-        break;
-    }
+void ProxFrame(char* Celula, byte novaCelula){
+  for (int i = 0; i < NUM_CELULAS; ++i) {
+    char atual = Celula[i];
+    char prox = (i == NUM_CELULAS-1) ? novaCelula : Celula[i+1];
+    Celula[i] = prox;
   }
 }
 
-bool drawHero(byte position, char* terrainUpper, char* terrainLower, unsigned int score) {
+bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int score) {
   bool collide = false;
-  char upperSave = terrainUpper[POS_AVIAO];
-  char lowerSave = terrainLower[POS_AVIAO];
-  byte upper, lower;
+  char altoSave = CelulaAlto[POS_AVIAO];
+  char baixoSave = CelulaBaixo[POS_AVIAO];
+  byte alto, baixo;
   switch (position) {
-    case HERO_POSITION_OFF:
-      upper = lower = SPRITE_VAZIO;
+    case POS_AVIAO_NULO:
+      alto = baixo = SPRITE_VAZIO;
       break;
-    case HERO_POSITION_RUN_LOWER_1:
-      upper = SPRITE_VAZIO;
-      lower = SPRITE_AVIAO_BAIXO;
+    case AVIAO_POSICAO_1:
+      alto = SPRITE_VAZIO;
+      baixo = SPRITE_AVIAO_BAIXO;
       break;
-    case HERO_POSITION_RUN_LOWER_2:
-      upper = SPRITE_VAZIO;
-      lower = SPRITE_AVIAO_ALTO;
+    case AVIAO_POSICAO_2:
+      alto = SPRITE_VAZIO;
+      baixo = SPRITE_AVIAO_ALTO;
       break;
-    case HERO_POSITION_JUMP_1:
-    case HERO_POSITION_JUMP_8:
-      upper = SPRITE_VAZIO;
-      lower = SPRITE_INSETO_BAIXO;
+    case AVIAO_POSICAO_3:
+      alto = SPRITE_AVIAO_BAIXO;
+      baixo = SPRITE_VAZIO;
       break;
-    case HERO_POSITION_JUMP_2:
-    case HERO_POSITION_JUMP_7:
-      upper = SPRITE_JUMP_UPPER;
-      lower = SPRITE_INSETO_ALTO;
-      break;
-    case HERO_POSITION_JUMP_3:
-    case HERO_POSITION_JUMP_4:
-    case HERO_POSITION_JUMP_5:
-    case HERO_POSITION_JUMP_6:
-      upper = SPRITE_INSETO_BAIXO;
-      lower = SPRITE_VAZIO;
-      break;
-    case HERO_POSITION_RUN_UPPER_1:
-      upper = SPRITE_AVIAO_BAIXO;
-      lower = SPRITE_VAZIO;
-      break;
-    case HERO_POSITION_RUN_UPPER_2:
-      upper = SPRITE_AVIAO_ALTO;
-      lower = SPRITE_VAZIO;
+    case AVIAO_POSICAO_4:
+      alto = SPRITE_AVIAO_ALTO;
+      baixo = SPRITE_VAZIO;
       break;
   }
-  if (upper != ' ') {
-    terrainUpper[POS_AVIAO] = upper;
-    collide = (upperSave == SPRITE_VAZIO) ? false : true;
+  if (alto != ' ') {
+    CelulaAlto[POS_AVIAO] = alto;
+    collide = (altoSave == SPRITE_VAZIO) ? false : true;
   }
-  if (lower != ' ') {
-    terrainLower[POS_AVIAO] = lower;
-    collide |= (lowerSave == SPRITE_VAZIO) ? false : true;
+  if (baixo != ' ') {
+    CelulaBaixo[POS_AVIAO] = baixo;
+    collide |= (baixoSave == SPRITE_VAZIO) ? false : true;
   }
   
   byte digits = (score > 9999) ? 5 : (score > 999) ? 4 : (score > 99) ? 3 : (score > 9) ? 2 : 1;
   
   // Draw the scene
-  terrainUpper[TERRAIN_WIDTH] = '\0';
-  terrainLower[TERRAIN_WIDTH] = '\0';
-  char temp = terrainUpper[16-digits];
-  terrainUpper[16-digits] = '\0';
+  CelulaAlto[NUM_CELULAS] = '\0';
+  CelulaBaixo[NUM_CELULAS] = '\0';
+  char temp = CelulaAlto[16-digits];
+  CelulaAlto[16-digits] = '\0';
   lcd.setCursor(0,0);
-  lcd.print(terrainUpper);
-  terrainUpper[16-digits] = temp;  
+  lcd.print(CelulaAlto);
+  CelulaAlto[16-digits] = temp;  
   lcd.setCursor(0,1);
-  lcd.print(terrainLower);
+  lcd.print(CelulaBaixo);
   
   lcd.setCursor(16 - digits,0);
   lcd.print(score);
 
-  terrainUpper[POS_AVIAO] = upperSave;
-  terrainLower[POS_AVIAO] = lowerSave;
-  return collide;
+  CelulaAlto[POS_AVIAO] = altoSave;
+  CelulaBaixo[POS_AVIAO] = baixoSave;
+  return false;//collide;
 }
+
+static byte novoTipoCelula = VAZIO;
+static byte Temporizador_novaCelula = 1;
+
+byte CriarInseto(){ //Falta Completar
+	if (--Temporizador_novaCelula == 0) {
+	  int r = random(100);
+	  if (r < 4){
+	    novoTipoCelula = (random(2)==0) ? SPRITE_DOIS_INSETOS: SPRITE_DOIS_INSETOS;
+	  }else if (r < 17){
+	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_ALTO: SPRITE_INSETO_ALTO;
+	  }else if (r < 30){
+	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_BAIXO: SPRITE_INSETO_BAIXO;
+	  }else{
+	    novoTipoCelula = SPRITE_VAZIO;
+	  }
+	  Temporizador_novaCelula = 1;
+     }
+  return novoTipoCelula;
+}
+
 
 // Handle the button push as an interrupt
 void buttonPush() {
@@ -241,15 +231,14 @@ void setup(){
 }
 
 void loop(){
-  static byte heroPos = HERO_POSITION_RUN_LOWER_1;
-  static byte newTerrainType = VAZIO;
-  static byte newTerrainDuration = 1;
+  static byte aviaoPos = HERO_POSITION_RUN_baixo_1;
   static bool playing = false;
   static bool blink = false;
   static unsigned int distance = 0;
+  static int f = 0;
   
   if (!playing) {
-    drawHero((blink) ? HERO_POSITION_OFF : heroPos, terrainUpper, terrainLower, distance >> 3);
+    drawHero((blink) ? POS_AVIAO_NULO : aviaoPos, CelulaAlto, CelulaBaixo, distance >> 3);
     if (blink) {
       lcd.setCursor(0,0);
       lcd.print("Press Start");
@@ -258,7 +247,7 @@ void loop(){
     blink = !blink;
     if (buttonPushed) {
       initializeGraphics();
-      heroPos = HERO_POSITION_RUN_LOWER_1;
+      aviaoPos = HERO_POSITION_RUN_baixo_1;
       playing = true;
       buttonPushed = false;
       distance = 0;
@@ -266,43 +255,27 @@ void loop(){
     return;
   }
 
-  // Shift the terrain to the left
-  ProxFrame(terrainLower, newTerrainType == TERRAIN_LOWER_BLOCK ? SPRITE_DOIS_INSETOS : SPRITE_VAZIO);
-  ProxFrame(terrainUpper, newTerrainType == TERRAIN_UPPER_BLOCK ? SPRITE_DOIS_INSETOS : SPRITE_VAZIO);
-  
-  // Make new terrain to enter on the right
-  if (--newTerrainDuration == 0) {
-    if (newTerrainType == VAZIO) {
-      newTerrainType = (random(3) == 0) ? TERRAIN_UPPER_BLOCK : TERRAIN_LOWER_BLOCK;
-      newTerrainDuration = 2 + random(10);
-    } else {
-      newTerrainType = VAZIO;
-      newTerrainDuration = 10 + random(10);
-    }
-  }
+  // Shift the Celula to the left
+  ProxFrame(CelulaBaixo, CriarInseto());//Falta Completar
+  ProxFrame(CelulaAlto, CriarInseto());//Falta Completar
     
   if (buttonPushed) {
-    if (heroPos <= HERO_POSITION_RUN_LOWER_2) heroPos = HERO_POSITION_JUMP_1;
-    buttonPushed = false;
+    if (aviaoPos < AVIAO_POSICAO_4){
+	  ++aviaoPos;
+    }
+	buttonPushed = false;
   }  
 
-  if (drawHero(heroPos, terrainUpper, terrainLower, distance >> 3)) {
+  if (drawHero(aviaoPos, CelulaAlto, CelulaBaixo, distance >> 3)) {
     playing = false; // The hero collided with something. Too bad.
   } else {
-    if (heroPos == HERO_POSITION_RUN_LOWER_2 || heroPos == HERO_POSITION_JUMP_8) {
-      heroPos = HERO_POSITION_RUN_LOWER_1;
-    } else if ((heroPos >= HERO_POSITION_JUMP_3 && heroPos <= HERO_POSITION_JUMP_5) && terrainLower[POS_AVIAO] != SPRITE_VAZIO) {
-      heroPos = HERO_POSITION_RUN_UPPER_1;
-    } else if (heroPos >= HERO_POSITION_RUN_UPPER_1 && terrainLower[POS_AVIAO] == SPRITE_VAZIO) {
-      heroPos = HERO_POSITION_JUMP_5;
-    } else if (heroPos == HERO_POSITION_RUN_UPPER_2) {
-      heroPos = HERO_POSITION_RUN_UPPER_1;
-    } else {
-      ++heroPos;
+    if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {
+      --aviaoPos;
+      f = 0;
     }
+    else if (aviaoPos != AVIAO_POSICAO_1) f++;
     ++distance;
     
-    digitalWrite(PIN_AUTOPLAY, terrainLower[POS_AVIAO + 2] == SPRITE_VAZIO ? HIGH : LOW);
   }
   delay(50);
 }
