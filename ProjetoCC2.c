@@ -1,7 +1,6 @@
 #include <LiquidCrystal.h> //Import LiquidCrystal Library
 
 #define PIN_BUTTON 2 //Play button port
-#define PIN_AUTOPLAY 1 //Autoplay button port
 #define PIN_READWRITE 10 //LCD R/W
 #define PIN_CONTRAST 12 //LCD V0
 
@@ -224,8 +223,6 @@ void setup(){
   digitalWrite(PIN_CONTRAST, LOW);
   pinMode(PIN_BUTTON, INPUT);
   digitalWrite(PIN_BUTTON, HIGH);
-  pinMode(PIN_AUTOPLAY, OUTPUT);
-  digitalWrite(PIN_AUTOPLAY, HIGH);
   
   // Digital pin 2 maps to interrupt 0
   attachInterrupt(digitalPinToInterrupt(2), buttonPush, FALLING);
