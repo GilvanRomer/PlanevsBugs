@@ -122,7 +122,7 @@ void initializeGraphics(){
 // Slide the Celula to the left in half-character increments
 //
 static int frames = 0;
-void ProxFrame(char* Celula, byte novaCelula, byte vel, byte pos){ //vel controla velocidade dos insetos
+void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){ //vel controla velocidade dos insetos
   for (int i = 0; i < NUM_CELULAS; ++i) {
     char atual = Celula[i];
     char prox = (i == NUM_CELULAS-1) ? novaCelula : Celula[i+1];
