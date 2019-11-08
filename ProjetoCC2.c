@@ -26,7 +26,6 @@
 #define DOIS_INSETOS_2 3
 
 #define POS_AVIAO_NULO 0          // Hero is invisible
-#define HERO_POSITION_RUN_baixo_1 1  // Hero is running on baixo row (pose 1)
 
 #define AVIAO_POSICAO_1 1       // Starting a jump
 #define AVIAO_POSICAO_2 2       // Half-way up
@@ -122,13 +121,28 @@ void initializeGraphics(){
 // Slide the Celula to the left in half-character increments
 //
 static int frames = 0;
-void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){ //vel controla velocidade dos insetos
+void ProxFrame(char* Celula, byte novaCelula, byte novoTiro, int vel, byte pos){ //vel controla velocidade dos insetos
   for (int i = 0; i < NUM_CELULAS; ++i) {
     char atual = Celula[i];
     char prox = (i == NUM_CELULAS-1) ? novaCelula : Celula[i+1];
-    if (frames > vel*2){
-	  Celula[i] = prox;
-	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;
+	char tiro = ' ';
+	if (frames > vel*2){
+	  if (atual > 5 && prox == ' '){ //Atual e um tiro e prox e vazio
+		tiro = atual;
+	    Celula[i] = SPRITE_VAZIO;
+	  }
+	  else if(tiro != ' '){ //caso haja um tiro armazenado
+	    Celula[i] = tiro;
+		tiro = ' ';
+	  }
+	  else if(atual < 6 || atual == ' '){ //Atual nao e um tiro
+	    Celula[i] = (prox < 6 || prox == ' ') ? prox : SPRITE_VAZIO;
+	  }
+	  else if(atual == ' '){
+	    Celula[i] = (prox < 6 || prox == ' ') ? prox : SPRITE_VAZIO;
+	  }
+		Celula[i] = prox;
+	    frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;
     }
   }
   ++frames;
@@ -190,6 +204,21 @@ bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int s
   return false;//collide;
 }
 
+static byte aviaoPos = AVIAO_POSICAO_1;
+static bool atirou = false;
+
+byte NovoTiro(byte pos){
+    byte tiro;
+	if (atirou){
+	  if (aviaoPos == 1 && pos) tiro = SPRITE_TIRO_BAIXO;
+	  else if (aviaoPos == 3 && !pos) tiro = SPRITE_TIRO_BAIXO;
+	  else if (aviaoPos == 2 && pos) tiro = SPRITE_TIRO_ALTO;
+	  else if (aviaoPos == 4 && !pos) tiro = SPRITE_TIRO_ALTO;
+	  atirou = false;
+	  return tiro;
+	}else return SPRITE_VAZIO;
+}
+
 static byte novoTipoCelula = SPRITE_VAZIO;
 static byte distNovaCelula = 1;
 
@@ -230,10 +259,11 @@ void setup(){
   initializeGraphics();
   
   lcd.begin(16, 2);
+  
+  Serial.begin(9600);
 }
 
 void loop(){
-  static byte aviaoPos = HERO_POSITION_RUN_baixo_1;
   static bool playing = false;
   static bool blink = false;
   static unsigned int distance = 0;
@@ -249,7 +279,7 @@ void loop(){
     blink = !blink;
     if (buttonPushed) {
       initializeGraphics();
-      aviaoPos = HERO_POSITION_RUN_baixo_1;
+      aviaoPos = AVIAO_POSICAO_1;
       playing = true;
       buttonPushed = false;
       distance = 0;
@@ -258,13 +288,14 @@ void loop(){
   }
 
   // Shift the Celula to the left
-  ProxFrame(CelulaBaixo, CriarInseto(5), 5, 0);//Falta Completar
-  ProxFrame(CelulaAlto, CriarInseto(5), 5, 1);//Falta Completar
+  ProxFrame(CelulaBaixo, CriarInseto(5), NovoTiro(0), 5, 0);//Falta Completar
+  ProxFrame(CelulaAlto, CriarInseto(5), NovoTiro(1), 5, 1);//Falta Completar
     
   if (buttonPushed) {
     if (aviaoPos < AVIAO_POSICAO_4){
 	  ++aviaoPos;
       f = 0;
+	  atirou = true;
     }
 	buttonPushed = false;
   }  
@@ -275,6 +306,7 @@ void loop(){
     if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {
       --aviaoPos;
       f = 0;
+	  atirou = true;
     }
     else if (aviaoPos != AVIAO_POSICAO_1) f++;
     ++distance;
