@@ -3,9 +3,8 @@ Small arduino uno game, about a plane killing bugs.<br>
 <br>
 Código Faltante:<br>
 <ol type="1">
-  <li>Tiros.</li>
-  <li>Sensor de colisão.</li>
-  <li>Contador de pontos.</li>
+  <li>Tiros. !!!BUGADO!!! Alguém conserte o bug no "Pull requests" pls</li>
+  <li>Sensor de colisão. !!! Trabalhando nisso !!!</li>
   <li>Sons.</li>
   <li>Níveis de dificuldade.</li>
   <li>Múltiplos botões:
