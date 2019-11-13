@@ -13,7 +13,7 @@
 #define SPRITE_TIRO_BAIXO 6
 #define SPRITE_TIRO_ALTO 7
 
-#define POS_AVIAO 0    // Horizontal position of hero on screen
+#define POS_AVIAO 0    // Horizontal pos of hero on screen
 
 #define NUM_CELULAS 16
 #define VAZIO 0
@@ -185,39 +185,29 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){ //vel controla
   ++frames;
 }
 
-bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo) {
-  bool collide = false;
+bool drawHero(byte pos, char* CelulaAlto, char* CelulaBaixo) {
+  bool bateu = false;
   char altoSave = CelulaAlto[POS_AVIAO];
   char baixoSave = CelulaBaixo[POS_AVIAO];
-  byte alto, baixo;
-  switch (position) {
+  switch (pos) {
     case POS_AVIAO_NULO:
-      alto = baixo = SPRITE_VAZIO;
       break;
     case AVIAO_POSICAO_1:
-      alto = SPRITE_VAZIO;
-      baixo = SPRITE_AVIAO_BAIXO;
+      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_BAIXO;
+	  bateu = ((baixoSave == SPRITE_INSETO_BAIXO) || (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;
       break;
     case AVIAO_POSICAO_2:
-      alto = SPRITE_VAZIO;
-      baixo = SPRITE_AVIAO_ALTO;
+      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_ALTO;
+	  bateu = ((baixoSave == SPRITE_INSETO_ALTO) || (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;
       break;
     case AVIAO_POSICAO_3:
-      alto = SPRITE_AVIAO_BAIXO;
-      baixo = SPRITE_VAZIO;
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_BAIXO;
+	  bateu = ((altoSave == SPRITE_INSETO_BAIXO) || (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;
       break;
     case AVIAO_POSICAO_4:
-      alto = SPRITE_AVIAO_ALTO;
-      baixo = SPRITE_VAZIO;
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_ALTO;
+	  bateu = ((altoSave == SPRITE_INSETO_ALTO) || (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;
       break;
-  }
-  if (alto != ' ') {
-    CelulaAlto[POS_AVIAO] = alto;
-    collide = (altoSave == SPRITE_VAZIO) ? false : true;
-  }
-  if (baixo != ' ') {
-    CelulaBaixo[POS_AVIAO] = baixo;
-    collide |= (baixoSave == SPRITE_VAZIO) ? false : true;
   }
   
   byte digits = (pontos > 9999) ? 5 : (pontos > 999) ? 4 : (pontos > 99) ? 3 : (pontos > 9) ? 2 : 1;
@@ -238,7 +228,7 @@ bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo) {
 
   CelulaAlto[POS_AVIAO] = altoSave;
   CelulaBaixo[POS_AVIAO] = baixoSave;
-  return false;//collide;
+  return bateu;
 }
 
 byte NovoTiro(byte pos){
@@ -330,7 +320,7 @@ void loop(){
   }  
 
   if (drawHero(aviaoPos, CelulaAlto, CelulaBaixo)) {
-    playing = false; // The hero collided with something. Too bad.
+    playing = false; // The hero bateud with something. Too bad.
   } else {
     if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {
       --aviaoPos;
