@@ -4,12 +4,11 @@
 #define PIN_READWRITE 10 //LCD R/W
 #define PIN_CONTRAST 12 //LCD V0
 
+#define SPRITE_VAZIO ' '      // User the ' ' character
 #define SPRITE_AVIAO_BAIXO 1
 #define SPRITE_AVIAO_ALTO 2
 #define SPRITE_INSETO_BAIXO 3
-#define SPRITE_JUMP_alto '.'         // Use the '.' character for the head
 #define SPRITE_INSETO_ALTO 4
-#define SPRITE_VAZIO ' '      // User the ' ' character
 #define SPRITE_DOIS_INSETOS 5
 #define SPRITE_TIRO_BAIXO 6
 #define SPRITE_TIRO_ALTO 7
@@ -121,39 +120,72 @@ void initializeGraphics(){
 static int frames = 0;
 static byte aviaoPos = AVIAO_POSICAO_1;
 static bool atirou = false;
+static unsigned int pontos = 0;
 
 void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){ //vel controla velocidade dos insetos
   if (frames > vel*2){
 	byte tiro = NovoTiro(pos);
-	for (int i = 0; i < NUM_CELULAS; ++i) {
-      char atual = Celula[i];
-      char prox = (i == NUM_CELULAS-1) ? novaCelula : Celula[i+1];
-	  if (!(atual > 5 || prox > 5)){
-	    Celula[i] = prox;
+	static byte temp = SPRITE_VAZIO;
+	Celula[0] = SPRITE_VAZIO;
+	for (int i = 1; i < NUM_CELULAS; ++i) {
+      char atual = (i == NUM_CELULAS-1) ? novaCelula : Celula[i];
+	  char aterior = Celula[i-1];
+	  if (temp != SPRITE_VAZIO){
+	    if (!(atual == 6 || atual == 7 || atual == ' ')){
+		  if ((temp == SPRITE_TIRO_BAIXO && atual == SPRITE_INSETO_BAIXO) || (temp == SPRITE_TIRO_ALTO && atual == SPRITE_INSETO_ALTO)){
+			Celula[i] = SPRITE_VAZIO;
+		    ++pontos;
+		  }
+		  else if (temp == SPRITE_TIRO_BAIXO && atual == SPRITE_DOIS_INSETOS){
+		    Celula[i-1] = SPRITE_INSETO_ALTO;
+		    Celula[i] = SPRITE_VAZIO;
+		    ++pontos;
+		  }
+		  else if (temp == SPRITE_TIRO_ALTO && atual == SPRITE_DOIS_INSETOS){
+		    Celula[i-1] = SPRITE_INSETO_BAIXO;
+		    Celula[i] = SPRITE_VAZIO;
+		    ++pontos;
+		  }
+		  else{
+	        Celula[i-1] = atual;
+		    Celula[i] = temp;
+		  }
+		  temp = SPRITE_VAZIO;
+		}
+		else if (atual == ' '){
+		  Celula[i] = temp;
+		  temp = SPRITE_VAZIO;
+		}
+		else {
+		  Celula[i] = temp;
+		  temp = atual;
+		}
 	  }
-	  else if (!(atual > 5) && prox > 5){
-	    Celula[i] = SPRITE_VAZIO;
+	  else if (!(atual == 6 || atual == 7 || atual == ' ')){
+	    Celula[i-1] = atual;
+		Celula[i] = SPRITE_VAZIO;
 	  }
-	  else if (atual > 5 && !(prox > 5)) Celula[i] = Celula[i+1] = SPRITE_VAZIO;
+	  else if (atual != ' '){
+		temp = atual;
+		Celula[i] = SPRITE_VAZIO;
+	  }
 	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames; // Reseta frames quando necessario
-    }
-    for (int i = NUM_CELULAS-1; i > 0; --i) {
-      char atual = Celula[i];
-      char prox = Celula[i-1];
-	  if (prox > 5){
-	    Celula[i] = prox;
+	if (tiro != ' ' && atirou){ // Atira e mata oponente logo a frente se atirou == true
+	  if (Celula[1] == ' '){
+	    Celula[1] = tiro;
 	  }
-	  else if (atual > 5) Celula[i] = SPRITE_VAZIO;
-    }
-    if (tiro != ' '){
-	  Celula[1] = (atirou && Celula[1] == ' ') ? tiro : (atirou) ? SPRITE_VAZIO : Celula[1]; //Atira e mata oponente logo a frente se atirou == true
+	  else{
+	    Celula[1] = SPRITE_VAZIO;
+		++pontos;
+	  }
 	  atirou = false;
+    }
     }
   }
   ++frames;
 }
 
-bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int score) {
+bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo) {
   bool collide = false;
   char altoSave = CelulaAlto[POS_AVIAO];
   char baixoSave = CelulaBaixo[POS_AVIAO];
@@ -188,7 +220,7 @@ bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int s
     collide |= (baixoSave == SPRITE_VAZIO) ? false : true;
   }
   
-  byte digits = (score > 9999) ? 5 : (score > 999) ? 4 : (score > 99) ? 3 : (score > 9) ? 2 : 1;
+  byte digits = (pontos > 9999) ? 5 : (pontos > 999) ? 4 : (pontos > 99) ? 3 : (pontos > 9) ? 2 : 1;
   
   // Draw the scene
   CelulaAlto[NUM_CELULAS] = '\0';
@@ -202,7 +234,7 @@ bool drawHero(byte position, char* CelulaAlto, char* CelulaBaixo, unsigned int s
   lcd.print(CelulaBaixo);
   
   lcd.setCursor(16 - digits,0);
-  lcd.print(score);
+  lcd.print(pontos);
 
   CelulaAlto[POS_AVIAO] = altoSave;
   CelulaBaixo[POS_AVIAO] = baixoSave;
@@ -264,11 +296,10 @@ void setup(){
 void loop(){
   static bool playing = false;
   static bool blink = false;
-  static unsigned int distance = 0;
   static int f = 0;
   
   if (!playing) {
-    drawHero((blink) ? POS_AVIAO_NULO : aviaoPos, CelulaAlto, CelulaBaixo, distance >> 3);
+    drawHero((blink) ? POS_AVIAO_NULO : aviaoPos, CelulaAlto, CelulaBaixo);
     if (blink) {
       lcd.setCursor(0,0);
       lcd.print("Press Start");
@@ -280,7 +311,7 @@ void loop(){
       aviaoPos = AVIAO_POSICAO_1;
       playing = true;
       buttonPushed = false;
-      distance = 0;
+      pontos = 0;
     }
     return;
   }
@@ -298,7 +329,7 @@ void loop(){
 	buttonPushed = false;
   }  
 
-  if (drawHero(aviaoPos, CelulaAlto, CelulaBaixo, distance >> 3)) {
+  if (drawHero(aviaoPos, CelulaAlto, CelulaBaixo)) {
     playing = false; // The hero collided with something. Too bad.
   } else {
     if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {
@@ -307,8 +338,6 @@ void loop(){
 	  atirou = true;
     }
     else if (aviaoPos != AVIAO_POSICAO_1) f++;
-    ++distance;
-    
   }
   delay(50);
 }
