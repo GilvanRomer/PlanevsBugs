@@ -3,7 +3,7 @@ Small arduino uno game, about a plane killing bugs.<br>
 <br>
 Código Faltante:<br>
 <ol type="1">
-  <li>Tiros. !!!BUGADO!!! Alguém conserte o bug se puder</li>
+  <li>Tiros. !!!BUGADO!!! Conserto em andamento</li>
   <li>Sons.</li>
   <li>Níveis de dificuldade.</li>
   <li>Múltiplos botões:
