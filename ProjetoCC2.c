@@ -1,46 +1,36 @@
-#include <LiquidCrystal.h> //Import LiquidCrystal Library
+#include <LiquidCrystal.h> //Importa biblioteca LiquidCrystal
 
-#define PIN_BUTTON 2 //Play button port
-#define PIN_READWRITE 10 //LCD R/W
-#define PIN_CONTRAST 12 //LCD V0
+#define PIN_BOTAO 2        //Porta do botao
+#define PIN_READWRITE 10   //LCD R/W
+#define PIN_CONTRASTE 12   //LCD V0
 
-#define SPRITE_VAZIO ' '      // User the ' ' character
-#define SPRITE_AVIAO_BAIXO 1
-#define SPRITE_AVIAO_ALTO 2
-#define SPRITE_INSETO_BAIXO 3
-#define SPRITE_INSETO_ALTO 4
-#define SPRITE_DOIS_INSETOS 5
-#define SPRITE_TIRO_BAIXO 6
-#define SPRITE_TIRO_ALTO 7
+#define SPRITE_VAZIO ' '      //Usa o caracter ' ' como vazio
+#define SPRITE_AVIAO_BAIXO 1  //Usa o caracter '1' como o aviao em baixo
+#define SPRITE_AVIAO_ALTO 2   //Usa o caracter '2' como o aviao em cima 
+#define SPRITE_INSETO_BAIXO 3 //Usa o caracter '3' como o inseto em baixo
+#define SPRITE_INSETO_ALTO 4  //Usa o caracter '4' como o inseto em cima
+#define SPRITE_DOIS_INSETOS 5 //Usa o caracter '5' como dois insetos
+#define SPRITE_TIRO_BAIXO 6   //Usa o caracter '6' como um tiro em baixo
+#define SPRITE_TIRO_ALTO 7    //Usa o caracter '7' como um tiro em cima
 
-#define POS_AVIAO 0    // Horizontal pos of hero on screen
+#define POS_AVIAO 0  //Posicao horizontal do aviao
 
-#define NUM_CELULAS 16
-#define VAZIO 0
-#define INSETO_BAIXO_1 1
-#define INSETO_BAIXO_2 1
-#define INSETO_ALTO_1 2
-#define INSETO_ALTO_2 2
-#define DOIS_INSETOS_1 3
-#define DOIS_INSETOS_2 3
+#define NUM_CELULAS 16  //Numero horizontal total de celulas no lcd
 
-#define POS_AVIAO_NULO 0          // Hero is invisible
+#define AVIAO_POS_NULA 0  //Aviao esta invisivel
 
-#define AVIAO_POSICAO_1 1       // Starting a jump
-#define AVIAO_POSICAO_2 2       // Half-way up
-#define AVIAO_POSICAO_3 3       // Jump is on alto row
-#define AVIAO_POSICAO_4 4       // Jump is on alto row
+#define AVIAO_POSICAO_1 1  //Em baixo na celula de baixo
+#define AVIAO_POSICAO_2 2  //Em cima na celula de baixo
+#define AVIAO_POSICAO_3 3  //Em baixo na celula de cima
+#define AVIAO_POSICAO_4 4  //Em cima na celula de cima
 
-#define HERO_POSITION_RUN_alto_1 11 // Hero is running on alto row (pose 1)
-#define HERO_POSITION_RUN_alto_2 12 //                              (pose 2)
+LiquidCrystal lcd(11, 9, 6, 5, 4, 3);     //Instancia lcd
+static char CelulaAlto[NUM_CELULAS + 1];  //Estados de todas as celulas de cima
+static char CelulaBaixo[NUM_CELULAS + 1]; //Estados de todas as celulas de baixo
+static bool botaoAtivado = false;         //Estado do botao
 
-LiquidCrystal lcd(11, 9, 6, 5, 4, 3); //Initialize lcd
-static char CelulaAlto[NUM_CELULAS + 1];
-static char CelulaBaixo[NUM_CELULAS + 1];
-static bool buttonPushed = false;
-
-void initializeGraphics(){
-  static byte graphics[] = { //Store new lcd characters
+void preparaCena(){         //Instancia a cena com todos os elementos no estado inicial
+  static byte sprites[] = { //Armazena os sprites
     // Avião baixo
     B00000,
     B00000,
@@ -105,229 +95,222 @@ void initializeGraphics(){
     B00000,
     B00000,
   };
-  int i;
-  // Skip using character 0, this allows lcd.print() to be used to
-  // quickly draw multiple characters
-  for (i = 0; i < 7; ++i) {
-	  lcd.createChar(i + 1, &graphics[i * 8]); // Create 7 new caracters(defined in the binary graphics array)
+  int i;                                       //Variavel contadora
+  for (i = 0; i < 7; ++i) {                    //Itera sobre cada sprite em sprites[]
+	  lcd.createChar(i + 1, &sprites[i * 8]);  //Cria 7 novos sprites
   }
-  for (i = 0; i < NUM_CELULAS; ++i) {
-    CelulaAlto[i] = SPRITE_VAZIO;
-    CelulaBaixo[i] = SPRITE_VAZIO;
+  for (i = 0; i < NUM_CELULAS; ++i) {          //Itera horizontalmente sobre cada celula do lcd
+    CelulaAlto[i] = SPRITE_VAZIO;              //Inicializa todas as celulas de cima com SPRITE_VAZIO
+    CelulaBaixo[i] = SPRITE_VAZIO;             //Inicializa todas as celulas de baixo com SPRITE_VAZIO
   }
 }
 
-static int frames = 0;
-static byte aviaoPos = AVIAO_POSICAO_1;
-static bool atirou = false;
-static unsigned int pontos = 0;
+static int frames = 0;                   //Variavel controla o fluxo na funcao ProxFrame
+static byte aviaoPos = AVIAO_POSICAO_1;  //Instancia a posicao vertical inicial do aviao
+static bool atirou = false;              //Sinalizador registra se o sistema de tiro foi ativado
+static unsigned int pontos = 0;          //Contador de pontos
 
-void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){ //vel controla velocidade dos insetos
-  if (frames > vel*2){
-	byte tiro = NovoTiro(pos);
-	static byte temp = SPRITE_VAZIO;
-	Celula[0] = SPRITE_VAZIO;
-	for (int i = 1; i < NUM_CELULAS; ++i) {
-      char atual = (i == NUM_CELULAS-1) ? novaCelula : Celula[i];
-	  char aterior = Celula[i-1];
-	  if (temp != SPRITE_VAZIO){
-	    if (!(atual == 6 || atual == 7 || atual == ' ')){
-		  if ((temp == SPRITE_TIRO_BAIXO && atual == SPRITE_INSETO_BAIXO) || (temp == SPRITE_TIRO_ALTO && atual == SPRITE_INSETO_ALTO)){
-			Celula[i] = SPRITE_VAZIO;
-		    ++pontos;
+void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               //Calcula o proximo estado de cada celula
+  if (frames > vel*2){                                                          //Atualiza lcd condicionado a vel
+	byte tiro = NovoTiro(pos);                                                  //Cria tiro na posicao certa
+	byte temp = SPRITE_VAZIO;                                                   //Variavel temporaria inicializada como ' '
+	Celula[0] = SPRITE_VAZIO;                                                   //Apaga vestigios do ultimo estado
+	for (int i = 1; i < NUM_CELULAS; ++i) {                                     //Itera horizontalmente para cada celula do lcd
+      char atual = (i == NUM_CELULAS-1) ? novaCelula : Celula[i];               //Armazena o valor atual da celula ou proximo inseto
+	  char aterior = Celula[i-1];                                               //Armazena a celula anterior a atual
+	  if (tiro != ' ' && atirou && i == 1){                                     //Se ha registro de tiro e um tipo de tiro
+	    temp = tiro;                                                            //Armazena tiro
+	    atirou = false;                                                         //Sinaliza nenhum tiro
+      }
+	  if (temp != SPRITE_VAZIO){                                                //Se houver um tiro armazenado em temp
+	    if (!(atual == 6 || atual == 7 || atual == ' ')){                       //Se atual for um inseto
+		  if ((temp == SPRITE_TIRO_BAIXO && atual == SPRITE_INSETO_BAIXO) ||
+		     (temp == SPRITE_TIRO_ALTO && atual == SPRITE_INSETO_ALTO)){        //Se o tiro em temp estiver na mesma posicao que o inseto em atual
+			Celula[i] = SPRITE_VAZIO;                                           //Inseto morre e o tiro some
+		    ++pontos;                                                           //Incrementa os pontos
 		  }
-		  else if (temp == SPRITE_TIRO_BAIXO && atual == SPRITE_DOIS_INSETOS){
-		    Celula[i-1] = SPRITE_INSETO_ALTO;
-		    Celula[i] = SPRITE_VAZIO;
-		    ++pontos;
+		  else if (temp == SPRITE_TIRO_BAIXO && atual == SPRITE_DOIS_INSETOS){  //Se o tiro em temp acertar dois insetos em baixo %%%%%%%%%%%%%%%%%%%%%%%%Bug
+		    Celula[i-1] = SPRITE_INSETO_ALTO;                                   //O inseto de cima prossegue
+		    Celula[i] = SPRITE_VAZIO;                                           //O inseto de baixo morre e o tiro some
+		    ++pontos;                                                           //Incrementa os pontos
 		  }
-		  else if (temp == SPRITE_TIRO_ALTO && atual == SPRITE_DOIS_INSETOS){
-		    Celula[i-1] = SPRITE_INSETO_BAIXO;
-		    Celula[i] = SPRITE_VAZIO;
-		    ++pontos;
+		  else if (temp == SPRITE_TIRO_ALTO && atual == SPRITE_DOIS_INSETOS){   //Se o tiro em temp acertar dois insetos em cima %%%%%%%%%%%%%%%%%%%%%%%%Bug
+		    Celula[i-1] = SPRITE_INSETO_BAIXO;                                  //O inseto de baixo prossegue
+		    Celula[i] = SPRITE_VAZIO;                                           //O inseto de cima morre e o tiro some
+		    ++pontos;                                                           //Incrementa os pontos
 		  }
-		  else{
-	        Celula[i-1] = atual;
-		    Celula[i] = temp;
+		  else{                                                                 //Se o tiro nao acertar nenhum inseto %%%%%%%%%%%%%%%%%%%%%%%%Bug
+	        Celula[i-1] = atual;                                                //O inseto prossegue
+		    Celula[i] = temp;                                                   //O tiro prossegue
 		  }
-		  temp = SPRITE_VAZIO;
+		  temp = SPRITE_VAZIO;                                                  //Esvazia temp
 		}
-		else if (atual == ' '){
-		  Celula[i] = temp;
-		  temp = SPRITE_VAZIO;
+		else if (atual == ' '){                                                 //Se o atual estiver vazio
+		  Celula[i] = temp;                                                     //Tiro prossegue
+		  temp = SPRITE_VAZIO;                                                  //Esvazia temp
 		}
-		else {
-		  Celula[i] = temp;
-		  temp = atual;
+		else {                                                                  //Se atual tambem e um tiro
+		  Celula[i] = temp;                                                     //Tiro em temp prossegue
+		  temp = atual;                                                         //Armazena tiro atual em temp
 		}
 	  }
-	  else if (!(atual == 6 || atual == 7 || atual == ' ')){
-	    Celula[i-1] = atual;
-		Celula[i] = SPRITE_VAZIO;
+	  else if (!(atual == 6 || atual == 7 || atual == ' ')){                    //Se atual for um inseto %%%%%%%%%%%%%%%%%%%%%%%%Bug
+	    Celula[i-1] = atual;                                                    //Inseto prossegue
+		Celula[i] = SPRITE_VAZIO;                                               //Esvazia atual
 	  }
-	  else if (atual != ' '){
-		temp = atual;
-		Celula[i] = SPRITE_VAZIO;
+	  else if (atual != ' '){                                                   //Se atual for um tiro
+		temp = atual;                                                           //Armazena o tiro em temp
+		Celula[i] = SPRITE_VAZIO;                                               //Esvazia celula atual
 	  }
-	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames; // Reseta frames quando necessario
-	if (tiro != ' ' && atirou){ // Atira e mata oponente logo a frente se atirou == true
-	  if (Celula[1] == ' '){
-	    Celula[1] = tiro;
-	  }
-	  else{
-	    Celula[1] = SPRITE_VAZIO;
-		++pontos;
-	  }
-	  atirou = false;
-    }
+	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;                        //Reseta frames quando necessario
     }
   }
-  ++frames;
+  ++frames;                                                                     //Incrementa controlador de fluxo
 }
 
-bool drawHero(byte pos, char* CelulaAlto, char* CelulaBaixo) {
-  bool bateu = false;
-  char altoSave = CelulaAlto[POS_AVIAO];
-  char baixoSave = CelulaBaixo[POS_AVIAO];
-  switch (pos) {
-    case POS_AVIAO_NULO:
-      break;
+bool mostraCena(byte pos, char* CelulaAlto, char* CelulaBaixo) {   //Imprime a cena no lcd e detecta colisao
+  bool bateu = false;                                              //Sinalizador de colisao
+  char altoSave = CelulaAlto[POS_AVIAO];                           //Salva valor inicial da celula de cima do aviao
+  char baixoSave = CelulaBaixo[POS_AVIAO];                         //Salva valor inicial da celula de baixo do aviao
+  switch (pos) {                                                   //Escolhe acao para cada estado de pos
     case AVIAO_POSICAO_1:
-      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_BAIXO;
-	  bateu = ((baixoSave == SPRITE_INSETO_BAIXO) || (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;
+      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_BAIXO;                 //Grava estado do aviao
+	  bateu = ((baixoSave == SPRITE_INSETO_BAIXO) ||
+	          (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
       break;
     case AVIAO_POSICAO_2:
-      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_ALTO;
-	  bateu = ((baixoSave == SPRITE_INSETO_ALTO) || (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;
+      CelulaBaixo[POS_AVIAO] = SPRITE_AVIAO_ALTO;                  //Grava estado do aviao
+	  bateu = ((baixoSave == SPRITE_INSETO_ALTO) ||
+	          (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
       break;
     case AVIAO_POSICAO_3:
-      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_BAIXO;
-	  bateu = ((altoSave == SPRITE_INSETO_BAIXO) || (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_BAIXO;                 //Grava estado do aviao
+	  bateu = ((altoSave == SPRITE_INSETO_BAIXO) ||
+	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
       break;
     case AVIAO_POSICAO_4:
-      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_ALTO;
-	  bateu = ((altoSave == SPRITE_INSETO_ALTO) || (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_ALTO;                  //Grava estado do aviao
+	  bateu = ((altoSave == SPRITE_INSETO_ALTO) ||
+	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
       break;
   }
   
-  byte digits = (pontos > 9999) ? 5 : (pontos > 999) ? 4 : (pontos > 99) ? 3 : (pontos > 9) ? 2 : 1;
+  byte digits = (pontos > 9999) ? 5 : (pontos > 999) ? 4 : (pontos > 99) ? 3 : (pontos > 9) ? 2 : 1;  //Registra numero de digitos da pontuacao
   
-  // Draw the scene
-  CelulaAlto[NUM_CELULAS] = '\0';
-  CelulaBaixo[NUM_CELULAS] = '\0';
-  char temp = CelulaAlto[16-digits];
-  CelulaAlto[16-digits] = '\0';
-  lcd.setCursor(0,0);
-  lcd.print(CelulaAlto);
-  CelulaAlto[16-digits] = temp;  
-  lcd.setCursor(0,1);
-  lcd.print(CelulaBaixo);
+  CelulaAlto[NUM_CELULAS] = '\0';    //Insere caractere nulo ao final do vetor. Completa uma string e agiliza o processamento
+  CelulaBaixo[NUM_CELULAS] = '\0';   //Insere caractere nulo ao final do vetor.
+  char aux = CelulaAlto[16-digits];  //Armazena sprite na posicao inicial dos pontos
+  CelulaAlto[16-digits] = '\0';      //Apaga posicao inicial dos pontos
+  lcd.setCursor(0,0);                //Posiciona o cursor no canto superior esquerdo do lcd
+  lcd.print(CelulaAlto);             //Imprime conteudo superior do ProxFrame
+  CelulaAlto[16-digits] = aux;       //Reinsere sprite salvo na sua posicao original
+  lcd.setCursor(0,1);                //Posiciona o cursor no canto inferior esquerdo do lcd
+  lcd.print(CelulaBaixo);            //Imprime conteudo inferior do ProxFrame
   
-  lcd.setCursor(16 - digits,0);
-  lcd.print(pontos);
+  lcd.setCursor(16 - digits,0);  //Posiciona cursor na posicao inicial dos pontos
+  lcd.print(pontos);             //Imprime pontuacao
 
-  CelulaAlto[POS_AVIAO] = altoSave;
-  CelulaBaixo[POS_AVIAO] = baixoSave;
-  return bateu;
+  CelulaAlto[POS_AVIAO] = altoSave;    //Restaura primeira celula a seu estado original
+  CelulaBaixo[POS_AVIAO] = baixoSave;  //Restaura primeira celula a seu estado original
+  return bateu;                        //Retorna sinalizador de colisao
 }
 
-byte NovoTiro(byte pos){
-	if (aviaoPos == 1 && !pos) return SPRITE_TIRO_BAIXO;
-	else if (aviaoPos == 3 && pos) return SPRITE_TIRO_BAIXO;
-	else if (aviaoPos == 2 && !pos) return SPRITE_TIRO_ALTO;
-	else if (aviaoPos == 4 && pos) return SPRITE_TIRO_ALTO;
-	else return SPRITE_VAZIO;
+byte NovoTiro(byte pos){                                      //Gera um tiro na posicao correta
+	if (aviaoPos == 1 && !pos) return SPRITE_TIRO_BAIXO;      //Retorna tiro caso posicao esteja correta
+	else if (aviaoPos == 3 && pos) return SPRITE_TIRO_BAIXO;  //Retorna tiro caso posicao esteja correta
+	else if (aviaoPos == 2 && !pos) return SPRITE_TIRO_ALTO;  //Retorna tiro caso posicao esteja correta
+	else if (aviaoPos == 4 && pos) return SPRITE_TIRO_ALTO;   //Retorna tiro caso posicao esteja correta
+	else return SPRITE_VAZIO;                                 //Retorna vazio caso nao haja posicao correta
 }
 
-static byte novoTipoCelula = SPRITE_VAZIO;
-static byte distNovaCelula = 1;
+static byte novoTipoInseto = SPRITE_VAZIO;  //Armazena um novo inseto
+static byte distNovoInseto = 1;             //Armazena a distancia cumulativa dos insetos
 
-byte CriarInseto(byte dist){ //Falta Completar
-	if (--distNovaCelula == 0) {
-	  int r = random(100);
-	  if (r < 10){
-	    novoTipoCelula = (random(2)==0) ? SPRITE_DOIS_INSETOS: SPRITE_DOIS_INSETOS;
-	  }else if (r < 55){
-	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_ALTO: SPRITE_INSETO_ALTO;
-	  }else{
-	    novoTipoCelula = (random(2)==0) ? SPRITE_INSETO_BAIXO: SPRITE_INSETO_BAIXO;
+byte CriarInseto(byte dist){                   //Falta Completar
+	if (--distNovoInseto == 0) {               //Decrementa distancia para o proximo inseto e checa se e 0
+	  int r = random(100);                     //Armazena um numero aleatorio de 0~99
+	  if (r < 10){                             //Com 10% de chance
+	    return SPRITE_DOIS_INSETOS;            //Retorna dois insetos
+	  }else if (r < 55){                       //Com 55% de chance
+	    return SPRITE_INSETO_ALTO;             //Retorna um inseto alto
+	  }else{                                   //Com 35% de chance
+	   return SPRITE_INSETO_BAIXO;             //Retorna um inseto baixo
 	  }
-	  distNovaCelula = dist; //Dist controla a distancia entre os insetos
-    }else{
-	  novoTipoCelula = SPRITE_VAZIO;
+	  distNovoInseto = dist;                   //Dist controla a distancia entre os insetos
+    }else{                                     //Se a distancia ainda nao e 0
+	  return SPRITE_VAZIO;                     //Retorna um sprite vazio
 	 }
-  return novoTipoCelula;
 }
 
-
-// Handle the button push as an interrupt
-void buttonPush() {
-  buttonPushed = true;
+void ativaBotao() {     //Interrupt para ativar o botao
+  botaoAtivado = true;  //Atribui booleano verdadeiro para o sinalizador do botao
 }
 
-void setup(){
-  pinMode(PIN_READWRITE, OUTPUT);
-  digitalWrite(PIN_READWRITE, LOW);
-  pinMode(PIN_CONTRAST, OUTPUT);
-  digitalWrite(PIN_CONTRAST, LOW);
-  pinMode(PIN_BUTTON, INPUT);
-  digitalWrite(PIN_BUTTON, HIGH);
+void setup(){                                                      //Setup
+  pinMode(PIN_READWRITE, OUTPUT);                                  //Define PIN_READWRITE como output
+  digitalWrite(PIN_READWRITE, LOW);                                //Define estado inicial do PIN_READWRITE como LOW
+  pinMode(PIN_CONTRASTE, OUTPUT);                                  //Define PIN_CONTRASTE como output
+  digitalWrite(PIN_CONTRASTE, LOW);                                //Define estado inicial do PIN_CONTRASTE como LOW
+  pinMode(PIN_BOTAO, INPUT);                                       //Define PIN_BOTAO como input
+  digitalWrite(PIN_BOTAO, HIGH);                                   //Define estado inicial do PIN_BOTAO como HIGH
   
-  // Digital pin 2 maps to interrupt 0
-  attachInterrupt(digitalPinToInterrupt(2), buttonPush, FALLING);
+  attachInterrupt(digitalPinToInterrupt(2), ativaBotao, FALLING);  //Pino digital 2 e mapeado para o interrupt 0
   
-  initializeGraphics();
+  preparaCena();                                                   //Instancia os graficos
   
-  lcd.begin(16, 2);
+  lcd.begin(16, 2);                                                //Inicializa o lcd
   
-  Serial.begin(9600);
+  Serial.begin(9600);                                              //Inicializa o serial para testes
 }
 
-void loop(){
-  static bool playing = false;
-  static bool blink = false;
-  static int f = 0;
+void loop(){                                                                          //Rotina principal
+  static bool jogando = false;                                                        //Armazena estado da reproducao do jogo
+  static bool pisca = false;                                                          //Sinalizador de pisca-pisca
+  static int f = 0;                                                                   //Controle de fluxo para a movimentacao do aviao
   
-  if (!playing) {
-    drawHero((blink) ? POS_AVIAO_NULO : aviaoPos, CelulaAlto, CelulaBaixo);
-    if (blink) {
-      lcd.setCursor(0,0);
-      lcd.print("Press Start");
+  if (!jogando) {                                                                     //Se jogo nao etiver rodando
+    mostraCena((pisca) ? AVIAO_POS_NULA : aviaoPos, CelulaAlto, CelulaBaixo);         //Pisca cena no estado atual
+    if (pisca) {                                                                      //Se for pra piscar
+      lcd.setCursor(0,0);                                                             //Posiciona cursor no canto superior esquerdo do lcd
+      lcd.print("Press Start");                                                       //Escreve no lcd
     }
-    delay(250);
-    blink = !blink;
-    if (buttonPushed) {
-      initializeGraphics();
-      aviaoPos = AVIAO_POSICAO_1;
-      playing = true;
-      buttonPushed = false;
-      pontos = 0;
+    delay(250);                                                                       //Delay de 250ms ate piscar de novo
+    pisca = !pisca;                                                                   //Inverte o estado de pisca-pisca
+    if (botaoAtivado) {                                                               //Se botao foi precionado
+      preparaCena();                                                                  //Reinicializa o lcd para seu estado inicial
+      aviaoPos = AVIAO_POSICAO_1;                                                     //Reinicializa a posicao do aviao para seu estado inicial
+      jogando = true;                                                                 //Atualiza estado de reproducao do jogo
+      botaoAtivado = false;                                                           //Desativa sinalizador de ativacao do botao
+      pontos = 0;                                                                     //Reseta pontuacao
     }
-    return;
+    return;                                                                           //Enquanto estado de reproducao for false, nao executa os proximos blocos de codigo
   }
-
-  // Shift the Celula to the left
-  ProxFrame(CelulaBaixo, CriarInseto(5), 5, 0);//Falta Completar
-  ProxFrame(CelulaAlto, CriarInseto(5), 5, 1);//Falta Completar
+  
+  byte novoInseto = CriarInseto(5);                                                   //Cria, ou nao, um novo inseto
+  byte proxInsetoBaixo = (random(2) == 0) ? novoInseto : SPRITE_VAZIO;                //Atribui o novo inseto para a celula inferior com 50% de chance
+  byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribui a celula inferior, atribua a celula superior
+  
+  ProxFrame(CelulaBaixo, proxInsetoBaixo, 5, 0);  //Avanca o estado das celulas superiores do lcd
+  ProxFrame(CelulaAlto, proxInsetoAlto, 5, 1);  //Avanca o estado das celulas inferiores do lcd
     
-  if (buttonPushed) {
-    if (aviaoPos < AVIAO_POSICAO_4){
-	  ++aviaoPos;
-      f = 0;
-	  atirou = true;
+  if (botaoAtivado) {                 //Se o botao foi precionado
+    if (aviaoPos < AVIAO_POSICAO_4){  //Se o aviao nao estiver no topo da tela do lcd
+	  ++aviaoPos;                     //faz o aviao subir um nivel
+      f = 0;                          //Reseta controlador de fluxo
+	  atirou = true;                  //Atira sempre que o aviao subir
     }
-	buttonPushed = false;
+	botaoAtivado = false;             //Desativa sinalizador de botao ativado
   }  
 
-  if (drawHero(aviaoPos, CelulaAlto, CelulaBaixo)) {
-    playing = false; // The hero bateud with something. Too bad.
-  } else {
-    if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {
-      --aviaoPos;
-      f = 0;
-	  atirou = true;
+  if (mostraCena(aviaoPos, CelulaAlto, CelulaBaixo)) {  //Mostra a cena e detecta colisao
+    jogando = false;                                    //Game over
+  } else {                                              //Se aviao nao colidiu
+    if (aviaoPos > AVIAO_POSICAO_1 && f == 7) {         //Se aviao nao esta no fundo e controlador de fluxo == 7
+      --aviaoPos;                                       //Faz o aviao descer um nivel
+      f = 0;                                            //Reseta controlador de fluxo
+	  atirou = true;                                    //Atira sempre que o aviao descer
     }
-    else if (aviaoPos != AVIAO_POSICAO_1) f++;
+    else if (aviaoPos != AVIAO_POSICAO_1) f++;          //Incrementa o controlador de fluxo enquanto o aviao nao estiver parado no fundo da tela do lcd
   }
-  delay(50);
+  delay(50);                                            //Espera 50ms para o proximo frame
 }
