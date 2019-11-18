@@ -113,7 +113,7 @@ static byte aviaoPos = AVIAO_POSICAO_1;  //Instancia a posicao vertical inicial 
 static bool atirou = false;              //Sinalizador registra se o sistema de tiro foi ativado
 static unsigned int pontos = 0;          //Contador de pontos
 
-void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               //Calcula o proximo estado de cada celula
+void ProxFrame(char* Celula, byte novaCelula, byte pos){                        //Calcula o proximo estado de cada celula
 	byte tiro = NovoTiro(pos);                                                  //Cria tiro na posicao certa
 	byte temp = SPRITE_VAZIO;                                                   //Variavel temporaria inicializada como ' '
 	Celula[0] = SPRITE_VAZIO;                                                   //Apaga vestigios do ultimo estado
@@ -134,7 +134,7 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               
 		    ++pontos;                                                           //Incrementa os pontos
 		  }
 		  else if (temp == SPRITE_TIRO_BAIXO && atual == SPRITE_DOIS_INSETOS){  //Se o tiro em temp acertar dois insetos em baixo
-		    if (anterior == ' '){                                                //Se anterior estiver vazio
+		    if (anterior == ' '){                                               //Se anterior estiver vazio
 			  Celula[i-1] = SPRITE_INSETO_ALTO;                                 //O inseto de cima prossegue
 		      Celula[i] = SPRITE_VAZIO;                                         //O inseto de baixo morre e o tiro some
 			}
@@ -151,7 +151,7 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               
 		    ++pontos;                                                           //Incrementa os pontos
 		  }
 		  else if (temp == SPRITE_TIRO_ALTO && atual == SPRITE_DOIS_INSETOS){   //Se o tiro em temp acertar dois insetos em cima 
-		    if (anterior == ' '){                                                //Se anterior estiver vazio
+		    if (anterior == ' '){                                               //Se anterior estiver vazio
 			  Celula[i-1] = SPRITE_INSETO_BAIXO;                                //O inseto de baixo prossegue
 		      Celula[i] = SPRITE_VAZIO;                                         //O inseto de cima morre e o tiro some
 			}
@@ -220,8 +220,8 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               
 		temp = atual;                                                           //Armazena o tiro em temp
 		Celula[i] = SPRITE_VAZIO;                                               //Esvazia celula atual
 	  }
-	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;                        //Reseta frames quando necessario
-    }                                                                   //Incrementa controlador de fluxo
+	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;                        //Reseta contador de frames quando necessario
+    }
 }
 
 bool mostraCena(byte pos, char* CelulaAlto, char* CelulaBaixo) {   //Imprime a cena no lcd e detecta colisao
@@ -240,14 +240,14 @@ bool mostraCena(byte pos, char* CelulaAlto, char* CelulaBaixo) {   //Imprime a c
 	          (baixoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
       break;
     case AVIAO_POSICAO_3:
-      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_BAIXO;                 //Grava estado do aviao
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_BAIXO;                  //Grava estado do aviao
 	  bateu = ((altoSave == SPRITE_INSETO_BAIXO) ||
-	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
+	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;   //Detecta colisao com inseto
       break;
     case AVIAO_POSICAO_4:
-      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_ALTO;                  //Grava estado do aviao
+      CelulaAlto[POS_AVIAO] = SPRITE_AVIAO_ALTO;                   //Grava estado do aviao
 	  bateu = ((altoSave == SPRITE_INSETO_ALTO) ||
-	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;  //Detecta colisao com inseto
+	          (altoSave == SPRITE_DOIS_INSETOS)) ? true : false;   //Detecta colisao com inseto
       break;
   }
   
@@ -344,15 +344,14 @@ void loop(){                                                                    
     return;                                                                           //Enquanto estado de reproducao for false, nao executa os proximos blocos de codigo
   }
   
-  if (frames > veloc){                                                                  //Atualiza lcd condicionado a vel
+  if (frames > veloc){                                                                  //Atualiza lcd condicionado a veloc
     byte novoInseto = CriarInseto(dist);                                                //Cria, ou nao, um novo inseto
     byte proxInsetoBaixo = (random(2) == 0) ? novoInseto : SPRITE_VAZIO;                //Atribui o novo inseto para a celula inferior com 50% de chance
-    byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribui a celula inferior, atribua a celula superior
+    byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribuido a celula inferior, atribua a celula superior
   
-    ProxFrame(CelulaBaixo, proxInsetoBaixo, veloc, 0);  //Avanca o estado das celulas superiores do lcd
-    ProxFrame(CelulaAlto, proxInsetoAlto, veloc, 1);    //Avanca o estado das celulas inferiores do lcd
-  }
-  ++frames;  
+    ProxFrame(CelulaBaixo, proxInsetoBaixo, 0);  //Avanca o estado das celulas superiores do lcd
+    ProxFrame(CelulaAlto, proxInsetoAlto, 1);    //Avanca o estado das celulas inferiores do lcd
+  }  
     
   if (botaoAtivado) {                 //Se o botao foi precionado
     if (aviaoPos < AVIAO_POSICAO_4){  //Se o aviao nao estiver no topo da tela do lcd
@@ -374,4 +373,5 @@ void loop(){                                                                    
     else if (aviaoPos != AVIAO_POSICAO_1) f++;          //Incrementa o controlador de fluxo enquanto o aviao nao estiver parado no fundo da tela do lcd
   }
   delay(50);                                            //Espera 50ms para o proximo frame
+  ++frames;                                             //Contador de fps
 }
