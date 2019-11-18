@@ -114,7 +114,6 @@ static bool atirou = false;              //Sinalizador registra se o sistema de 
 static unsigned int pontos = 0;          //Contador de pontos
 
 void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               //Calcula o proximo estado de cada celula
-  if (frames > vel){                                                            //Atualiza lcd condicionado a vel
 	byte tiro = NovoTiro(pos);                                                  //Cria tiro na posicao certa
 	byte temp = SPRITE_VAZIO;                                                   //Variavel temporaria inicializada como ' '
 	Celula[0] = SPRITE_VAZIO;                                                   //Apaga vestigios do ultimo estado
@@ -199,7 +198,7 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               
 		}
 	  }
 	  else if (!(atual == 6 || atual == 7 || atual == ' ')){                    //Se atual for um inseto
-	    if (anterior == ' '){                                                    //Se anterior estiver vazio
+	    if (anterior == ' '){                                                   //Se anterior estiver vazio
 	      Celula[i-1] = atual;                                                  //Inseto prossegue
 	      Celula[i] = SPRITE_VAZIO;                                             //Esvazia atual
 	    }
@@ -222,9 +221,7 @@ void ProxFrame(char* Celula, byte novaCelula, int vel, byte pos){               
 		Celula[i] = SPRITE_VAZIO;                                               //Esvazia celula atual
 	  }
 	  frames = (i == NUM_CELULAS-1 && pos) ? 0 : frames;                        //Reseta frames quando necessario
-    }
-  }
-  ++frames;                                                                     //Incrementa controlador de fluxo
+    }                                                                   //Incrementa controlador de fluxo
 }
 
 bool mostraCena(byte pos, char* CelulaAlto, char* CelulaBaixo) {   //Imprime a cena no lcd e detecta colisao
@@ -327,6 +324,7 @@ void loop(){                                                                    
   static bool pisca = false;                                                          //Sinalizador de pisca-pisca
   static int veloc = 4;                                                               //Controle de fluxo para o fps
   static int f = 0;                                                                   //Controle de fluxo para a movimentacao do aviao
+  int dist = 5;                                                                       //Controla a distancia que cada inseto aparece
   
   if (!jogando) {                                                                     //Se jogo nao etiver rodando
     mostraCena((pisca) ? AVIAO_POS_NULA : aviaoPos, CelulaAlto, CelulaBaixo);         //Pisca cena no estado atual
@@ -346,12 +344,15 @@ void loop(){                                                                    
     return;                                                                           //Enquanto estado de reproducao for false, nao executa os proximos blocos de codigo
   }
   
-  byte novoInseto = CriarInseto(veloc);                                               //Cria, ou nao, um novo inseto
-  byte proxInsetoBaixo = (random(2) == 0) ? novoInseto : SPRITE_VAZIO;                //Atribui o novo inseto para a celula inferior com 50% de chance
-  byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribui a celula inferior, atribua a celula superior
+  if (frames > veloc){                                                                  //Atualiza lcd condicionado a vel
+    byte novoInseto = CriarInseto(dist);                                                //Cria, ou nao, um novo inseto
+    byte proxInsetoBaixo = (random(2) == 0) ? novoInseto : SPRITE_VAZIO;                //Atribui o novo inseto para a celula inferior com 50% de chance
+    byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribui a celula inferior, atribua a celula superior
   
-  ProxFrame(CelulaBaixo, proxInsetoBaixo, veloc, 0);  //Avanca o estado das celulas superiores do lcd
-  ProxFrame(CelulaAlto, proxInsetoAlto, veloc, 1);  //Avanca o estado das celulas inferiores do lcd
+    ProxFrame(CelulaBaixo, proxInsetoBaixo, veloc, 0);  //Avanca o estado das celulas superiores do lcd
+    ProxFrame(CelulaAlto, proxInsetoAlto, veloc, 1);    //Avanca o estado das celulas inferiores do lcd
+  }
+  ++frames;  
     
   if (botaoAtivado) {                 //Se o botao foi precionado
     if (aviaoPos < AVIAO_POSICAO_4){  //Se o aviao nao estiver no topo da tela do lcd
@@ -365,7 +366,7 @@ void loop(){                                                                    
   if (mostraCena(aviaoPos, CelulaAlto, CelulaBaixo)) {  //Mostra a cena e detecta colisao
     jogando = false;                                    //Game over
   } else {                                              //Se aviao nao colidiu
-    if (aviaoPos > AVIAO_POSICAO_1 && f == 8) {     //Se aviao nao esta no fundo e controlador de fluxo == veloc
+    if (aviaoPos > AVIAO_POSICAO_1 && f == 8) {         //Se aviao nao esta no fundo e controlador de fluxo == veloc
       --aviaoPos;                                       //Faz o aviao descer um nivel
       f = 0;                                            //Reseta controlador de fluxo
 	  atirou = true;                                    //Atira sempre que o aviao descer
