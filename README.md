@@ -17,4 +17,4 @@ Código Faltante:<br>
 Circuito atual:<br>
 Link: https://www.tinkercad.com/things/ewRBBZXpOCK-projeto-cc2
 <br>
-Link: https://www.tinkercad.com/things/jCgZsgwn4PS-copy-of-projeto-cc2
+Link: https://www.tinkercad.com/things/jCgZsgwn4PS-copy-of-projeto-cc2/editel
