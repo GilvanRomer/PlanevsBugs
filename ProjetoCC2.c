@@ -122,6 +122,15 @@ void ProxFrame(char* Celula, byte novaCelula, byte pos){                        
 	for (int i = 1; i < NUM_CELULAS; ++i) {                                     //Itera horizontalmente para cada celula do lcd
       char atual = (i == NUM_CELULAS-1) ? novaCelula : Celula[i];               //Armazena o valor atual da celula ou proximo inseto
 	  char anterior = Celula[i-1];                                              //Armazena a celula anterior a atual
+	  if (TiroSegundoPlano[i+p] != ' '){                                        //Caso haja um tiro em segundo plano
+	    if (temp == SPRITE_VAZIO){                                              //Se temp estiver vazio
+		  temp = TiroSegundoPlano[i+p];                                         //TiroSegundoPlano volta pro frame
+		}
+		else{                                                                   //Caso haja um tiro em temp
+		  TiroSegundoPlano[i+p+1] = TiroSegundoPlano[i+p];                      //TiroSegundoPlano segue em diante
+		}
+	    TiroSegundoPlano[i+p] = SPRITE_VAZIO;                                   //Apaga o tiro em segundo plano
+	  }
 	  if (tiro != ' ' && atirou && i == 1){                                     //Se ha registro de tiro e um tipo de tiro
 	    temp = tiro;                                                            //Armazena tiro
 	    atirou = false;                                                         //Sinaliza nenhum tiro
@@ -145,7 +154,7 @@ void ProxFrame(char* Celula, byte novaCelula, byte pos){                        
 			}
 			else{                                                               //Se anterior tem um tiro em baixo
 			  Celula[i-1] = SPRITE_INSETO_ALTO;                                 //O inseto de cima prossegue
-			  TiroSegundoPlano[i+p-1] = anterior;                               //Armazena tiro em segundo plano
+			  TiroSegundoPlano[i+p] = anterior;                                 //Armazena tiro em segundo plano
 		      Celula[i] = SPRITE_VAZIO;                                         //O inseto de baixo morre e o tiro some
 			}
 		    ++pontos;                                                           //Incrementa os pontos
@@ -162,7 +171,7 @@ void ProxFrame(char* Celula, byte novaCelula, byte pos){                        
 			}
 			else{                                                               //Se anterior tem um tiro em cima
 			  Celula[i-1] = SPRITE_INSETO_BAIXO;                                //O inseto de baixo prossegue
-			  TiroSegundoPlano[i+p-1] = anterior;                               //Armazena tiro em segundo plano
+			  TiroSegundoPlano[i+p] = anterior;                                 //Armazena tiro em segundo plano
 		      Celula[i] = SPRITE_VAZIO;                                         //O inseto de cima morre e o tiro some
 			}
 		    ++pontos;                                                           //Incrementa os pontos
@@ -178,12 +187,13 @@ void ProxFrame(char* Celula, byte novaCelula, byte pos){                        
 					 atual == SPRITE_INSETO_ALTO)){                             //Se o tiro em anterior estiver na mesma posicao que o inseto em atual
 			  Celula[i] = SPRITE_VAZIO;                                         //Inseto morre
 			  Celula[i-1] = SPRITE_VAZIO;                                       //E o tiro some
+			  TiroSegundoPlano[i+p+1] = temp;                                   //Armazena tiro em segundo plano
 		      ++pontos;                                                         //Incrementa os pontos
 		    }
 			else{                                                               //Se o tiro em anterior nao acertar o inseto
 			  Celula[i] = temp;                                                 //Tiro prossegue
 			  Celula[i-1] = atual;                                              //Inseto prossegue
-			  TiroSegundoPlano[i+p-1] = anterior;                               //Armazena tiro em segundo plano
+			  TiroSegundoPlano[i+p] = anterior;                                 //Armazena tiro em segundo plano
 			}
 		  }
 		  temp = SPRITE_VAZIO;                                                  //Esvazia temp
@@ -213,7 +223,7 @@ void ProxFrame(char* Celula, byte novaCelula, byte pos){                        
 	    else{                                                                   //Se o tiro em anterior nao acertar o inseto
 	      Celula[i] = SPRITE_VAZIO;                                             //Esvazia atual
 	      Celula[i-1] = atual;                                                  //Inseto prossegue
-	      TiroSegundoPlano[i+p-1] = anterior;                                   //Armazena tiro em segundo plano
+	      TiroSegundoPlano[i+p] = anterior;                                     //Armazena tiro em segundo plano
 	    }
 	  }
 	  else if (atual != ' '){                                                   //Se atual for um tiro
@@ -345,6 +355,8 @@ void loop(){                                                                    
   }
   
   if (frames > veloc){                                                                  //Atualiza lcd condicionado a veloc
+	veloc = (pontos > 150) ? 2 : (pontos > 75) ? 3 : (pontos > 15) ? 4 : 5;  			//Atualiza veloc de acordo com a pontuacao
+	dist =  (pontos > 250) ? 3 : (pontos > 40) ? 4 : 5;  								//Atualiza dist de acordo com a pontuacao
     byte novoInseto = CriarInseto(dist);                                                //Cria, ou nao, um novo inseto
     byte proxInsetoBaixo = (random(2) == 0) ? novoInseto : SPRITE_VAZIO;                //Atribui o novo inseto para a celula inferior com 50% de chance
     byte proxInsetoAlto = (proxInsetoBaixo == novoInseto) ? SPRITE_VAZIO : novoInseto;  //Se inseto nao foi atribuido a celula inferior, atribua a celula superior
