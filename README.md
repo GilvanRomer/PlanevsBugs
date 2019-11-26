@@ -1,4 +1,4 @@
-# PlanevsBug
+# PlanevsBugs
 Small Arduino Uno game, about a plane killing bugs.<br>
 <br>
 Circuito atual:<br>
